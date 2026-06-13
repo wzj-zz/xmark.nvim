@@ -64,6 +64,7 @@ local function build_schema()
     project_id = { "integer", required = true },
     name = { "text", required = true },
     description = "text",
+    current_item_id = "integer",
     created_at = { "integer", required = true },
     updated_at = { "integer", required = true },
   })
@@ -103,6 +104,18 @@ local function create_indexes()
   DB.projects:schema()
   DB.lists:schema()
   DB.items:schema()
+
+  local columns = eval("PRAGMA table_info(lists)")
+  local has_current_item_id = false
+  for _, column in ipairs(columns or {}) do
+    if column.name == "current_item_id" then
+      has_current_item_id = true
+      break
+    end
+  end
+  if not has_current_item_id then
+    eval("ALTER TABLE lists ADD COLUMN current_item_id INTEGER")
+  end
 
   eval("CREATE UNIQUE INDEX IF NOT EXISTS idx_xmark_projects_root ON projects(root)")
   eval("CREATE INDEX IF NOT EXISTS idx_xmark_lists_project ON lists(project_id)")
@@ -150,7 +163,24 @@ local function list_from_row(row)
   end
   row.desc = row.description or ""
   row.description = nil
+  row.current_item_id = row.current_item_id and tonumber(row.current_item_id) or nil
   return row
+end
+
+local function set_list_current_item_id(list_id, item_id)
+  local time = now()
+  if item_id then
+    eval("UPDATE lists SET current_item_id = :current_item_id, updated_at = :updated_at WHERE id = :id", {
+      current_item_id = item_id,
+      updated_at = time,
+      id = list_id,
+    })
+  else
+    eval("UPDATE lists SET current_item_id = NULL, updated_at = :updated_at WHERE id = :id", {
+      updated_at = time,
+      id = list_id,
+    })
+  end
 end
 
 local function lists_from_rows(rows)
@@ -237,7 +267,15 @@ end
 
 function M.update_list(list)
   list.updated_at = now()
-  DB.lists:update({ where = { id = list.id }, set = { name = list.name, description = list.desc or "", updated_at = list.updated_at } })
+  DB.lists:update({
+    where = { id = list.id },
+    set = {
+      name = list.name,
+      description = list.desc or "",
+      current_item_id = list.current_item_id,
+      updated_at = list.updated_at,
+    },
+  })
   return list_from_row(DB.lists:where({ id = list.id }))
 end
 
@@ -257,6 +295,47 @@ end
 
 function M.list(list_id)
   return list_from_row(DB.lists:where({ id = list_id, project_id = M.project().id }))
+end
+
+function M.current_list_item(list_id)
+  local current = M.project()
+  local list = list_id and M.list(list_id) or M.active_list()
+  if not list or not list.current_item_id then
+    return nil
+  end
+
+  local item = item_from_row(DB.items:where({
+    id = list.current_item_id,
+    project_id = current.id,
+    list_id = list.id,
+  }))
+  if item then
+    return item
+  end
+
+  set_list_current_item_id(list.id, nil)
+  return nil
+end
+
+function M.set_current_item(list_id, item_id)
+  local current = M.project()
+  local list = list_id and M.list(list_id) or M.active_list()
+  if not list then
+    error("xmark: list not found in current project")
+  end
+
+  if not item_id then
+    set_list_current_item_id(list.id, nil)
+    return list_from_row(DB.lists:where({ id = list.id }))
+  end
+
+  local item = item_from_row(DB.items:where({ id = item_id, project_id = current.id, list_id = list.id }))
+  if not item then
+    error("xmark: item not found in current list")
+  end
+
+  set_list_current_item_id(list.id, item_id)
+  return item
 end
 
 function M.items(list_id, limit)
@@ -327,6 +406,13 @@ function M.update_item(item)
 end
 
 function M.delete_item(item_id)
+  local item = M.item(item_id)
+  if item then
+    local list = M.list(item.list_id)
+    if list and list.current_item_id == item.id then
+      set_list_current_item_id(list.id, nil)
+    end
+  end
   DB.items:remove({ where = { id = item_id } })
 end
 

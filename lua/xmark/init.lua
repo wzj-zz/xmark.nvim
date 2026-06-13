@@ -27,11 +27,14 @@ local function setup_keymaps()
     toggle = { rhs = function() require("xmark").toggle() end, desc = "Xmark toggle item" },
     delete = { rhs = function() require("xmark").delete() end, desc = "Xmark delete item" },
     desc = { rhs = function() require("xmark").desc() end, desc = "Xmark edit desc" },
+    current = { rhs = function() require("xmark").current() end, desc = "Xmark goto current item" },
+    set_current = { rhs = function() require("xmark").set_current() end, desc = "Xmark set current item" },
     prev = { rhs = function() require("xmark").prev() end, desc = "Xmark previous item" },
     next = { rhs = function() require("xmark").next() end, desc = "Xmark next item" },
     first = { rhs = function() require("xmark").first() end, desc = "Xmark first item" },
     last = { rhs = function() require("xmark").last() end, desc = "Xmark last item" },
     pick = { rhs = function() require("xmark").pick() end, desc = "Xmark pick item" },
+    quickfix = { rhs = function() require("xmark").quickfix() end, desc = "Xmark list to quickfix" },
     lists = { rhs = function() require("xmark").lists() end, desc = "Xmark pick list" },
     new_list = { rhs = function() require("xmark").new_list() end, desc = "Xmark new list" },
     rename_list = { rhs = function() require("xmark").rename_list() end, desc = "Xmark rename list" },
@@ -93,6 +96,16 @@ function M.desc()
   end)
 end
 
+function M.current()
+  ensure()
+  require("xmark.core").goto_current()
+end
+
+function M.set_current()
+  ensure()
+  require("xmark.core").set_current_item()
+end
+
 function M.next()
   ensure()
   require("xmark.core").next()
@@ -116,6 +129,11 @@ end
 function M.pick()
   ensure()
   require("xmark.picker").items()
+end
+
+function M.quickfix()
+  ensure()
+  require("xmark.core").quickfix()
 end
 
 function M.lists()

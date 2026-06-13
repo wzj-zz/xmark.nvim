@@ -28,6 +28,15 @@ local function display(item)
   return string.format("%s:%d", item.path, item.line)
 end
 
+local function item_qf_entry(item)
+  return {
+    filename = project.absolute(item.path),
+    lnum = item.line,
+    col = item.col or 1,
+    text = display(item),
+  }
+end
+
 function M.active_list()
   return db.active_list()
 end
@@ -43,6 +52,10 @@ end
 function M.current_item()
   local loc = current_location()
   return db.item_at(loc.path, loc.line)
+end
+
+function M.list_current_item(list_id)
+  return db.current_list_item(list_id)
 end
 
 function M.add(desc, meta)
@@ -69,6 +82,7 @@ function M.add(desc, meta)
     notify("Added xmark: " .. display(item))
   end
 
+  db.set_current_item(nil, item.id)
   require("xmark.sign").refresh()
   return item
 end
@@ -93,6 +107,37 @@ function M.delete_current()
   db.delete_item(item.id)
   require("xmark.sign").refresh()
   notify("Deleted xmark: " .. display(item))
+end
+
+function M.set_current_item(item)
+  item = item or M.current_item()
+  if not item then
+    notify("No xmark at current line", vim.log.levels.WARN)
+    return
+  end
+
+  db.set_current_item(nil, item.id)
+  require("xmark.sign").refresh()
+  notify("Current xmark item: " .. display(item))
+  return item
+end
+
+function M.goto_current()
+  local item = db.current_list_item()
+  if not item then
+    local items = db.items(db.active_list().id, 1)
+    item = items[1]
+    if item then
+      db.set_current_item(nil, item.id)
+    end
+  end
+
+  if not item then
+    notify("Current xmark list is empty", vim.log.levels.WARN)
+    return
+  end
+
+  M.goto(item)
 end
 
 function M.update_desc(desc)
@@ -122,28 +167,31 @@ function M.goto(item)
 
   item.visited_at = os.time()
   db.update_item(item)
+  db.set_current_item(nil, item.id)
   require("xmark.sign").refresh()
 end
 
 local function current_index(items)
-  local ok, loc = pcall(current_location)
-  if ok then
+  local current = db.current_list_item()
+  if current then
     for index, item in ipairs(items) do
-      if item.path == loc.path and item.line == loc.line then
+      if item.id == current.id then
         return index
       end
     end
   end
 
-  local best_index, best_time = nil, -1
-  for index, item in ipairs(items) do
-    local visited_at = item.visited_at or 0
-    if visited_at > best_time then
-      best_index = index
-      best_time = visited_at
+  local ok, loc = pcall(current_location)
+  if ok then
+    for index, item in ipairs(items) do
+      if item.path == loc.path and item.line == loc.line then
+        db.set_current_item(nil, item.id)
+        return index
+      end
     end
   end
-  return best_index or 1
+
+  return 1
 end
 
 function M.jump(delta)
@@ -248,6 +296,27 @@ function M.set_active_list(list_id)
   require("xmark.sign").refresh()
   notify("Active xmark list: " .. list.name)
   return list
+end
+
+function M.quickfix()
+  local list = db.active_list()
+  local items = db.items(list.id)
+  if #items == 0 then
+    notify("Current xmark list is empty", vim.log.levels.WARN)
+    return
+  end
+
+  local qf_items = {}
+  for _, item in ipairs(items) do
+    table.insert(qf_items, item_qf_entry(item))
+  end
+
+  vim.fn.setqflist({}, " ", {
+    title = "xmark: " .. list.name,
+    items = qf_items,
+  })
+  vim.cmd("copen")
+  notify("Loaded xmark list into quickfix: " .. list.name)
 end
 
 function M.display(item)

@@ -3,17 +3,20 @@ local db = require("xmark.db")
 
 local M = {}
 
-local function line_for(item)
-  return string.format("#%d %s:%d:%d %s", item.id, item.path, item.line, item.col or 1, item.desc or "")
+local function location_key(path, line, col)
+  return table.concat({ path, tostring(line), tostring(col or 1) }, ":")
+end
+
+local function line_for(item, index)
+  return string.format("%d. %s:%d:%d %s", index, item.path, item.line, item.col or 1, item.desc or "")
 end
 
 local function parse_line(line)
-  local id, path, lnum, col, desc = line:match("^#(%d+)%s+(.+):(%d+):(%d+)%s*(.*)$")
-  if not id then
+  local _, path, lnum, col, desc = line:match("^(%d+)%.%s+(.+):(%d+):(%d+)%s*(.*)$")
+  if not path then
     return nil
   end
   return {
-    id = tonumber(id),
     path = path,
     line = tonumber(lnum),
     col = tonumber(col),
@@ -35,6 +38,34 @@ local function move_line(delta)
   vim.api.nvim_win_set_cursor(0, { target, 0 })
 end
 
+local function render_lines(items)
+  local lines = {}
+  for index, item in ipairs(items) do
+    table.insert(lines, line_for(item, index))
+  end
+  return lines
+end
+
+local function renumber_lines(buf)
+  local current_lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  local updated = {}
+
+  for index, line in ipairs(current_lines) do
+    if line == "" then
+      table.insert(updated, line)
+    else
+      local parsed = parse_line(line)
+      if parsed then
+        table.insert(updated, string.format("%d. %s:%d:%d %s", index, parsed.path, parsed.line, parsed.col or 1, parsed.desc or ""))
+      else
+        table.insert(updated, line)
+      end
+    end
+  end
+
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, updated)
+end
+
 function M.open()
   local list = core.active_list()
   local items = core.items(list.id)
@@ -43,9 +74,10 @@ function M.open()
   local origin_win = vim.api.nvim_get_current_win()
 
   for _, item in ipairs(items) do
-    known[item.id] = item
-    table.insert(lines, line_for(item))
+    known[location_key(item.path, item.line, item.col)] = item
   end
+
+  lines = render_lines(items)
 
   local buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_buf_set_name(buf, "xmark://" .. list.name)
@@ -79,24 +111,26 @@ function M.open()
     for index, line in ipairs(current_lines) do
       if line ~= "" then
         local parsed = parse_line(line)
-        if not parsed or not known[parsed.id] then
+        local key = parsed and location_key(parsed.path, parsed.line, parsed.col)
+        if not key or not known[key] then
           vim.notify("Invalid xmark editor line " .. index .. ": " .. line, vim.log.levels.ERROR)
           return false
         end
-        local item = known[parsed.id]
+        local item = known[key]
         item.desc = parsed.desc
         table.insert(ordered, item)
         seen[item.id] = true
       end
     end
 
-    for id in pairs(known) do
-      if not seen[id] then
-        db.delete_item(id)
+    for _, item in pairs(known) do
+      if not seen[item.id] then
+        db.delete_item(item.id)
       end
     end
 
     db.reorder_items(ordered)
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, render_lines(ordered))
     vim.api.nvim_buf_set_option(buf, "modified", false)
     require("xmark.sign").refresh()
     vim.notify("Saved xmark list order", vim.log.levels.INFO, { title = "xmark.nvim" })
@@ -125,14 +159,16 @@ function M.open()
 
   vim.keymap.set("n", "<C-j>", function()
     move_line(1)
+    renumber_lines(buf)
   end, { buffer = buf, desc = "Move xmark down" })
   vim.keymap.set("n", "<C-k>", function()
     move_line(-1)
+    renumber_lines(buf)
   end, { buffer = buf, desc = "Move xmark up" })
   vim.keymap.set("n", "<CR>", function()
     local parsed = parse_line(vim.api.nvim_get_current_line())
     if parsed then
-      local target = known[parsed.id]
+      local target = known[location_key(parsed.path, parsed.line, parsed.col)]
       if vim.api.nvim_win_is_valid(origin_win) then
         vim.api.nvim_set_current_win(origin_win)
       end

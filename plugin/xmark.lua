@@ -28,6 +28,14 @@ vim.api.nvim_create_user_command("XmarkDesc", run(function()
   require("xmark").desc()
 end), { desc = "Edit xmark desc at current line" })
 
+vim.api.nvim_create_user_command("XmarkCurrent", run(function()
+  require("xmark").current()
+end), { desc = "Go to current item in active xmark list" })
+
+vim.api.nvim_create_user_command("XmarkSetCurrent", run(function()
+  require("xmark").set_current()
+end), { desc = "Set current item from current line" })
+
 vim.api.nvim_create_user_command("XmarkNext", run(function()
   require("xmark").next()
 end), { desc = "Go to next item in active xmark list" })
@@ -47,6 +55,10 @@ end), { desc = "Go to last item in active xmark list" })
 vim.api.nvim_create_user_command("XmarkPick", run(function()
   require("xmark").pick()
 end), { desc = "Pick an item from active xmark list" })
+
+vim.api.nvim_create_user_command("XmarkQuickfix", run(function()
+  require("xmark").quickfix()
+end), { desc = "Load active xmark list into quickfix" })
 
 vim.api.nvim_create_user_command("XmarkLists", run(function()
   require("xmark").lists()

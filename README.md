@@ -35,9 +35,12 @@ If `sqlite.lua` is lazy-loaded, declare it in `dependencies` so it is available 
 | `:XmarkToggle` | Toggle current line in the active list |
 | `:XmarkDesc` | Edit desc for current line |
 | `:XmarkDelete` | Delete current line from active list |
+| `:XmarkCurrent` | Jump to the current item tracked for the active list |
+| `:XmarkSetCurrent` | Set the active list current item from the current line |
 | `:XmarkNext` / `:XmarkPrev` | Jump through items in active list order without wrap-around |
 | `:XmarkFirst` / `:XmarkLast` | Jump to first or last item in active list |
 | `:XmarkPick` | Search active list with snacks and jump to an item |
+| `:XmarkQuickfix` | Load the active list into the quickfix list |
 | `:XmarkLists` | Switch the active list with snacks |
 | `:XmarkNewList` | Create and activate a list |
 | `:XmarkRenameList` | Rename the active list |
@@ -46,7 +49,7 @@ If `sqlite.lua` is lazy-loaded, declare it in `dependencies` so it is available 
 | `:XmarkImport! path.json` | Import agent JSON into a new list |
 | `:XmarkExport path.json` | Export the active list as agent-friendly JSON |
 
-`XmarkNext` and `XmarkPrev` stop at the list boundaries and do not wrap around.
+`XmarkNext` and `XmarkPrev` stop at the list boundaries and do not wrap around. They advance from the active list current item, which is updated by jumps and can be set explicitly with `:XmarkSetCurrent`.
 
 ## Keymaps
 
@@ -56,10 +59,13 @@ Default keymaps:
 - `<Leader>mt`: toggle current line.
 - `<Leader>md`: delete current line.
 - `<Leader>mc`: edit current line desc.
+- `<Leader>mg` / `<M-?>`: jump to the current item for the active list.
+- `<Leader>ms`: set the current item for the active list from the current line.
 - `<Leader>mp` / `<M-{>`: previous item without wrap-around.
 - `<Leader>mn` / `<M-}>`: next item without wrap-around.
 - `<Leader>mP` / `<Leader>mN`: first / last item.
 - `<Leader>mf`: pick item from active list.
+- `<Leader>mq`: load the active list into quickfix.
 - `<Leader>ml`: pick active list.
 - `<Leader>ma`: create and activate a new list.
 - `<Leader>mr`: rename active list.
@@ -75,11 +81,14 @@ require("xmark").setup({
     toggle = "<Leader>mt",
     delete = "<Leader>md",
     desc = "<Leader>mc",
+    current = { "<Leader>mg", "<M-?>" },
+    set_current = "<Leader>ms",
     prev = { "<Leader>mp", "<M-{>" },
     next = { "<Leader>mn", "<M-}>" },
     first = "<Leader>mP",
     last = "<Leader>mN",
     pick = "<Leader>mf",
+    quickfix = "<Leader>mq",
     lists = "<Leader>ml",
     new_list = "<Leader>ma",
     rename_list = "<Leader>mr",
@@ -89,6 +98,23 @@ require("xmark").setup({
 ```
 
 Each entry accepts a string, a string list, or `false` to disable it.
+
+Each list also keeps its own current item. `:XmarkCurrent` jumps to it, `:XmarkSetCurrent` pins it from the current line, and jumps like `:XmarkNext`, `:XmarkPrev`, and picker-based navigation keep it updated.
+
+The current item is also highlighted in the source buffer with a stronger line highlight and a `>>` prefix in the virtual text.
+
+You can tune that marker styling through `signs`:
+
+```lua
+require("xmark").setup({
+  signs = {
+    desc_hl = "XmarkDesc",
+    line_hl = "XmarkLine",
+    current_line_hl = "XmarkCurrentLine",
+    current_prefix = ">>",
+  },
+})
+```
 
 ## Picker Shortcuts
 
@@ -114,7 +140,7 @@ Deleting the active list is safe: `xmark.nvim` switches to another list first, o
 - `<C-s>`: save changes and close the panel.
 - `q`: close the panel without saving.
 
-Each line keeps a hidden-stable `#id` prefix so the editor can reorder items, update desc, and detect deletions by removed lines.
+Inside the `:XmarkEditList` panel, each line starts with its current list order as `N.`. Moving items with `<C-j>` / `<C-k>` renumbers that panel immediately, and saving writes the new order plus any desc edits or deleted lines back to the list.
 
 ## Data Model
 

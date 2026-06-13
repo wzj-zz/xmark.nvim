@@ -15,7 +15,9 @@ function M.setup()
 
   vim.fn.sign_define(group, { text = opts.icon, texthl = opts.hl })
   vim.api.nvim_set_hl(0, opts.hl, { link = "DiagnosticInfo", default = true })
+  vim.api.nvim_set_hl(0, opts.desc_hl, { fg = "#111111", bg = "#ffcf40", bold = true, default = true })
   vim.api.nvim_set_hl(0, opts.line_hl, { link = "CursorLine", default = true })
+  vim.api.nvim_set_hl(0, opts.current_line_hl, { link = "Visual", default = true })
 end
 
 function M.clear(bufnr)
@@ -43,15 +45,22 @@ function M.refresh(bufnr)
   if not ok then
     return
   end
+  local current = db.current_list_item()
 
   local line_count = vim.api.nvim_buf_line_count(bufnr)
   for _, item in ipairs(items) do
     if item.line >= 1 and item.line <= line_count then
-      pcall(vim.fn.sign_place, item.id, group, group, bufnr, { lnum = item.line, priority = 10 })
+      local is_current = current and current.id == item.id
+      local prefix = is_current and (opts.current_prefix or ">>") or ""
+      pcall(vim.fn.sign_place, item.id, group, group, bufnr, {
+        lnum = item.line,
+        priority = is_current and 11 or 10,
+        linehl = is_current and opts.current_line_hl or opts.line_hl,
+      })
       if opts.show_desc then
         local text = require("xmark.core").display(item)
         vim.api.nvim_buf_set_extmark(bufnr, ns, item.line - 1, 0, {
-          virt_text = { { "  " .. text, opts.hl } },
+          virt_text = { { string.format("  %s %d. %s", prefix, item.item_order or 0, text):gsub("^%s+", "  "), opts.desc_hl } },
           virt_text_pos = "eol",
         })
       end
