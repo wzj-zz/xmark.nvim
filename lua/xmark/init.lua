@@ -39,6 +39,8 @@ local function setup_keymaps()
     new_list = { rhs = function() require("xmark").new_list() end, desc = "Xmark new list" },
     rename_list = { rhs = function() require("xmark").rename_list() end, desc = "Xmark rename list" },
     edit_list = { rhs = function() require("xmark").edit_list() end, desc = "Xmark edit list order" },
+    import = { rhs = function() require("xmark").import() end, desc = "Xmark import JSON" },
+    export = { rhs = function() require("xmark").export() end, desc = "Xmark export JSON" },
   }
 
   for name, mapping in pairs(mappings) do
@@ -67,6 +69,14 @@ local function input(prompt, default, callback)
   vim.ui.input({ prompt = prompt, default = default }, function(value)
     if value ~= nil then
       callback(value)
+    end
+  end)
+end
+
+local function file_input(prompt, default, callback)
+  vim.ui.input({ prompt = prompt, default = default, completion = "file" }, function(value)
+    if value ~= nil then
+      callback(vim.trim(value))
     end
   end)
 end
@@ -159,6 +169,30 @@ end
 function M.edit_list()
   ensure()
   require("xmark.editor").open()
+end
+
+function M.import()
+  ensure()
+  file_input("Xmark import path: ", "", function(path)
+    if path == "" then
+      return
+    end
+    input("Xmark list name (optional): ", "", function(list_name)
+      require("xmark.import").import_file(path, { list_name = list_name ~= "" and list_name or nil })
+    end)
+  end)
+end
+
+function M.export()
+  ensure()
+  local list = require("xmark.core").active_list()
+  local default = list and (list.name .. ".json") or ""
+  file_input("Xmark export path: ", default, function(path)
+    if path == "" then
+      return
+    end
+    require("xmark.import").export_file(path)
+  end)
 end
 
 function M.import_file(path, opts)

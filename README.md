@@ -69,6 +69,8 @@ Default keymaps:
 - `<Leader>ma`: create and activate a new list.
 - `<Leader>mr`: rename active list.
 - `<Leader>me`: edit active list order.
+- `<Leader>mi`: import JSON with `vim.ui.input` prompts.
+- `<Leader>mo`: export JSON with `vim.ui.input` prompts.
 
 Every keymap can be overridden or disabled:
 
@@ -92,6 +94,8 @@ require("xmark").setup({
     new_list = "<Leader>ma",
     rename_list = "<Leader>mr",
     edit_list = "<Leader>me",
+    import = "<Leader>mi",
+    export = "<Leader>mo",
   },
 })
 ```

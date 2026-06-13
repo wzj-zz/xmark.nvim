@@ -36,6 +36,8 @@ M.defaults = {
     new_list = "<Leader>ma",
     rename_list = "<Leader>mr",
     edit_list = "<Leader>me",
+    import = "<Leader>mi",
+    export = "<Leader>mo",
   },
 }
 
