@@ -1,4 +1,5 @@
 local core = require("xmark.core")
+local config = require("xmark.config")
 local db = require("xmark.db")
 local project = require("xmark.project")
 
@@ -72,10 +73,9 @@ function M.import_file(path, opts)
 
   local decoded = decode_file(path)
   local items = decoded.items or decoded
+  local list_name = opts.list_name or decoded.list or decoded.name
 
-  if opts.new_list or decoded.list or decoded.name then
-    core.create_list(opts.list_name or decoded.list or decoded.name)
-  end
+  core.create_list(list_name or config.get().default_list_name)
 
   local count = import_items(items)
   require("xmark.sign").refresh()

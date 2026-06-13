@@ -45,9 +45,8 @@ If `sqlite.lua` is lazy-loaded, declare it in `dependencies` so it is available 
 | `:XmarkNewList` | Create and activate a list |
 | `:XmarkRenameList` | Rename the active list |
 | `:XmarkEditList` | Open a Harpoon-style list editor for ordering and desc edits |
-| `:XmarkImport path.json` | Import agent JSON into the active list |
-| `:XmarkImport! path.json` | Import agent JSON into a new list |
-| `:XmarkExport path.json` | Export the active list as agent-friendly JSON |
+| `:XmarkImport path.json [list_name]` | Import agent JSON into a new list |
+| `:XmarkExport path.json` | Export the active list as JSON |
 
 `XmarkNext` and `XmarkPrev` stop at the list boundaries and do not wrap around. They advance from the active list current item, which is updated by jumps and can be set explicitly with `:XmarkSetCurrent`.
 
@@ -152,6 +151,24 @@ Runtime data is stored in SQLite under `stdpath("data") .. "/xmark/xmark.sqlite3
 
 Paths are stored relative to the project root, so exported data is easy for agents to read and portable across machines.
 
+## Import And Export
+
+`XmarkImport` always creates and activates a new list.
+
+- If you pass `list_name`, that name wins.
+- If you omit `list_name`, `xmark.nvim` uses the JSON `list` or `name` field.
+- If the JSON also omits a name, `xmark.nvim` falls back to `default_list_name` from config.
+- `XmarkImport` and `XmarkExport` both support quoted paths, so files with spaces work as expected.
+
+Examples:
+
+- `:XmarkImport findings.json`
+- `:XmarkImport findings.json review-notes`
+- `:XmarkImport findings.json "review notes"`
+- `:XmarkImport "findings with spaces.json" "review notes"`
+- `:XmarkExport findings.json`
+- `:XmarkExport "findings with spaces.json"`
+
 ## Agent JSON
 
 Agents can output either a plain array:
@@ -185,8 +202,6 @@ Or a named list:
   ]
 }
 ```
-
-Use `:XmarkImport! findings.json` to create a new active list from the agent output.
 
 ## Performance
 
