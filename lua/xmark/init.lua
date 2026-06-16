@@ -2,6 +2,7 @@ local config = require("xmark.config")
 
 local M = {}
 local initialized = false
+local mapped_keys = {}
 
 local function normalize_keys(value)
   if value == false or value == nil then
@@ -16,13 +17,8 @@ local function normalize_keys(value)
   return {}
 end
 
-local function setup_keymaps()
-  local keymaps = config.get().keymaps
-  if not keymaps or keymaps.enabled == false then
-    return
-  end
-
-  local mappings = {
+local function keymap_entries()
+  return {
     add = { rhs = function() require("xmark").add() end, desc = "Xmark add item" },
     toggle = { rhs = function() require("xmark").toggle() end, desc = "Xmark toggle item" },
     delete = { rhs = function() require("xmark").delete() end, desc = "Xmark delete item" },
@@ -42,10 +38,31 @@ local function setup_keymaps()
     import = { rhs = function() require("xmark").import() end, desc = "Xmark import JSON" },
     export = { rhs = function() require("xmark").export() end, desc = "Xmark export JSON" },
   }
+end
 
+local function clear_keymaps()
+  for _, lhs_list in pairs(mapped_keys) do
+    for _, lhs in ipairs(lhs_list) do
+      pcall(vim.keymap.del, "n", lhs)
+    end
+  end
+  mapped_keys = {}
+end
+
+function M.setup_keymaps()
+  local keymaps = config.get().keymaps
+  if not keymaps or keymaps.enabled == false then
+    return
+  end
+
+  clear_keymaps()
+
+  local mappings = keymap_entries()
   for name, mapping in pairs(mappings) do
     for _, lhs in ipairs(normalize_keys(keymaps[name])) do
       vim.keymap.set("n", lhs, mapping.rhs, { desc = mapping.desc, silent = true })
+      mapped_keys[name] = mapped_keys[name] or {}
+      table.insert(mapped_keys[name], lhs)
     end
   end
 end
@@ -55,7 +72,7 @@ function M.setup(opts)
   require("xmark.db").setup()
   require("xmark.sign").setup()
   require("xmark.sign").setup_autocmds()
-  setup_keymaps()
+  M.setup_keymaps()
   initialized = true
 end
 

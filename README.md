@@ -12,6 +12,8 @@ A SQLite-backed bookmark system for large codebases and security auditing workfl
 
 If `sqlite.lua` is lazy-loaded, declare it in `dependencies` so it is available when `xmark.nvim` calls `require("sqlite")`.
 
+If you use a lazy-loading plugin manager, also declare the xmark motion keys in its `keys` spec so the first `<C-]>` / `<C-[>` press loads the plugin before Neovim falls back to `cstag`.
+
 ## Install
 
 ```lua
