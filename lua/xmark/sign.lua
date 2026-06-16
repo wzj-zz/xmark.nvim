@@ -7,6 +7,39 @@ local M = {}
 local group = "XmarkSigns"
 local ns = vim.api.nvim_create_namespace("xmark.nvim")
 
+local function buffer_for_path(path)
+  local bufnr = vim.fn.bufnr(path, false)
+  if bufnr and bufnr > 0 and vim.api.nvim_buf_is_loaded(bufnr) then
+    return bufnr
+  end
+  return nil
+end
+
+local function render_item(bufnr, item, is_current, opts)
+  local line_count = vim.api.nvim_buf_line_count(bufnr)
+  if item.line < 1 or item.line > line_count then
+    return
+  end
+
+  local prefix = is_current and (opts.current_prefix or ">>") or ""
+  pcall(vim.fn.sign_place, item.id, group, group, bufnr, {
+    lnum = item.line,
+    priority = is_current and 11 or 10,
+    linehl = is_current and opts.current_line_hl or opts.line_hl,
+  })
+
+  if opts.show_desc then
+    local text = require("xmark.core").display(item)
+    vim.api.nvim_buf_set_extmark(bufnr, ns, item.line - 1, 0, {
+      id = item.id,
+      virt_text = { { string.format("  %s %d. %s", prefix, item.item_order or 0, text):gsub("^%s+", "  "), opts.desc_hl } },
+      virt_text_pos = "eol",
+    })
+  else
+    pcall(vim.api.nvim_buf_del_extmark, bufnr, ns, item.id)
+  end
+end
+
 function M.setup()
   local opts = config.get().signs
   if not opts.enabled then
@@ -47,25 +80,34 @@ function M.refresh(bufnr)
   end
   local current = db.current_list_item()
 
-  local line_count = vim.api.nvim_buf_line_count(bufnr)
   for _, item in ipairs(items) do
-    if item.line >= 1 and item.line <= line_count then
-      local is_current = current and current.id == item.id
-      local prefix = is_current and (opts.current_prefix or ">>") or ""
-      pcall(vim.fn.sign_place, item.id, group, group, bufnr, {
-        lnum = item.line,
-        priority = is_current and 11 or 10,
-        linehl = is_current and opts.current_line_hl or opts.line_hl,
-      })
-      if opts.show_desc then
-        local text = require("xmark.core").display(item)
-        vim.api.nvim_buf_set_extmark(bufnr, ns, item.line - 1, 0, {
-          virt_text = { { string.format("  %s %d. %s", prefix, item.item_order or 0, text):gsub("^%s+", "  "), opts.desc_hl } },
-          virt_text_pos = "eol",
-        })
-      end
-    end
+    render_item(bufnr, item, current and current.id == item.id, opts)
   end
+end
+
+function M.refresh_item(bufnr, item, is_current)
+  local opts = config.get().signs
+  if not opts.enabled or not item then
+    return
+  end
+
+  if bufnr == 0 then
+    bufnr = vim.api.nvim_get_current_buf()
+  end
+  bufnr = bufnr or buffer_for_path(project.absolute(item.path))
+  if not bufnr then
+    return
+  end
+
+  render_item(bufnr, item, is_current, opts)
+end
+
+function M.refresh_item_by_path(path, item, is_current)
+  local bufnr = buffer_for_path(path)
+  if not bufnr then
+    return
+  end
+  M.refresh_item(bufnr, item, is_current)
 end
 
 function M.setup_autocmds()

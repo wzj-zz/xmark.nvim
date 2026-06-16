@@ -112,8 +112,16 @@ function M.set_current_item(item)
     return
   end
 
-  db.set_current_item(nil, item.id)
-  require("xmark.sign").refresh()
+  local sign = require("xmark.sign")
+  local previous = db.current_list_item()
+  if not previous or previous.id ~= item.id then
+    db.set_current_item(nil, item.id)
+  end
+
+  if previous and previous.id ~= item.id then
+    sign.refresh_item_by_path(project.absolute(previous.path), previous, false)
+  end
+  sign.refresh_item(nil, item, true)
   return item
 end
 
@@ -148,10 +156,16 @@ function M.goto(item)
   if not item then
     return
   end
-
+  
+  local sign = require("xmark.sign")
+  local previous = db.current_list_item()
   local path = project.absolute(item.path)
   local current_path = vim.api.nvim_buf_get_name(0)
   local changed_buffer = project.absolute(current_path) ~= path
+  if not previous or previous.id ~= item.id then
+    db.set_current_item(nil, item.id)
+  end
+
   if changed_buffer then
     vim.cmd("edit " .. vim.fn.fnameescape(path))
   end
@@ -162,13 +176,12 @@ function M.goto(item)
   vim.api.nvim_win_set_cursor(0, { line, col })
   vim.cmd("normal! zz")
 
-  local current = db.current_list_item()
-  if not current or current.id ~= item.id then
-    db.set_current_item(nil, item.id)
+  if previous and previous.id ~= item.id then
+    sign.refresh_item_by_path(project.absolute(previous.path), previous, false)
   end
 
   if not changed_buffer then
-    require("xmark.sign").refresh()
+    sign.refresh_item(0, item, true)
   end
 end
 
