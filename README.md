@@ -12,7 +12,7 @@ A SQLite-backed bookmark system for large codebases and security auditing workfl
 
 If `sqlite.lua` is lazy-loaded, declare it in `dependencies` so it is available when `xmark.nvim` calls `require("sqlite")`.
 
-If you use a lazy-loading plugin manager, also declare the xmark motion keys in its `keys` spec so the first `<C-]>` / `<C-[>` press loads the plugin before Neovim falls back to `cstag`.
+If you use a lazy-loading plugin manager, also declare the xmark motion keys in its `keys` spec so the first motion press loads the plugin before Neovim falls back to a builtin mapping.
 
 ## Install
 
@@ -62,8 +62,8 @@ Default keymaps:
 - `<Leader>mc`: edit current line desc.
 - `<Leader>mg` / `<M-?>`: jump to the current item for the active list.
 - `<Leader>ms`: set the current item for the active list from the current line.
-- `<Leader>mp` / `<C-[>`: previous item without wrap-around.
-- `<Leader>mn` / `<C-]>`: next item without wrap-around.
+- `<Leader>mp` / `<M-{>`: previous item without wrap-around.
+- `<Leader>mn` / `<M-}>`: next item without wrap-around.
 - `<Leader>mP` / `<Leader>mN`: first / last item.
 - `<Leader>mf`: pick item from active list.
 - `<Leader>mq`: load the active list into quickfix.
@@ -86,8 +86,8 @@ require("xmark").setup({
     desc = "<Leader>mc",
     current = { "<Leader>mg", "<M-?>" },
     set_current = "<Leader>ms",
-    prev = { "<Leader>mp", "<C-[>" },
-    next = { "<Leader>mn", "<C-]>" },
+    prev = { "<Leader>mp", "<M-{>" },
+    next = { "<Leader>mn", "<M-}>" },
     first = "<Leader>mP",
     last = "<Leader>mN",
     pick = "<Leader>mf",
