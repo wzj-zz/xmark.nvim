@@ -60,8 +60,8 @@ Default keymaps:
 - `<Leader>mc`: edit current line desc.
 - `<Leader>mg` / `<M-?>`: jump to the current item for the active list.
 - `<Leader>ms`: set the current item for the active list from the current line.
-- `<Leader>mp` / `<M-{>`: previous item without wrap-around.
-- `<Leader>mn` / `<M-}>`: next item without wrap-around.
+- `<Leader>mp` / `<C-[>`: previous item without wrap-around.
+- `<Leader>mn` / `<C-]>`: next item without wrap-around.
 - `<Leader>mP` / `<Leader>mN`: first / last item.
 - `<Leader>mf`: pick item from active list.
 - `<Leader>mq`: load the active list into quickfix.
@@ -84,8 +84,8 @@ require("xmark").setup({
     desc = "<Leader>mc",
     current = { "<Leader>mg", "<M-?>" },
     set_current = "<Leader>ms",
-    prev = { "<Leader>mp", "<M-{>" },
-    next = { "<Leader>mn", "<M-}>" },
+    prev = { "<Leader>mp", "<C-[>" },
+    next = { "<Leader>mn", "<C-]>" },
     first = "<Leader>mP",
     last = "<Leader>mN",
     pick = "<Leader>mf",
