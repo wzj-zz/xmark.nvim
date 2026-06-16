@@ -48,7 +48,7 @@ If `sqlite.lua` is lazy-loaded, declare it in `dependencies` so it is available 
 | `:XmarkImport path.json [list_name]` | Import agent JSON into a new list |
 | `:XmarkExport path.json` | Export the active list as JSON |
 
-`XmarkNext` and `XmarkPrev` stop at the list boundaries and do not wrap around. They advance from the active list current item, which is updated by jumps and can be set explicitly with `:XmarkSetCurrent`.
+`XmarkNext` and `XmarkPrev` stop at the list boundaries and do not wrap around. If the cursor is not currently on an xmark item, they first jump back to the active list current item. Once you are on an xmark item, they advance in list order. The active list current item is updated by jumps and can be set explicitly with `:XmarkSetCurrent`.
 
 ## Keymaps
 

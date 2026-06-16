@@ -172,26 +172,26 @@ function M.goto(item)
 end
 
 local function current_index(items)
-  local current = db.current_list_item()
-  if current then
-    for index, item in ipairs(items) do
-      if item.id == current.id then
-        return index
-      end
-    end
-  end
-
   local ok, loc = pcall(current_location)
   if ok then
     for index, item in ipairs(items) do
       if item.path == loc.path and item.line == loc.line then
         db.set_current_item(nil, item.id)
-        return index
+        return index, true
       end
     end
   end
 
-  return 1
+  local current = db.current_list_item()
+  if current then
+    for index, item in ipairs(items) do
+      if item.id == current.id then
+        return index, false
+      end
+    end
+  end
+
+  return 1, false
 end
 
 function M.jump(delta)
@@ -201,7 +201,12 @@ function M.jump(delta)
     return
   end
 
-  local index = current_index(items)
+  local index, on_item = current_index(items)
+  if not on_item then
+    M.goto(items[index])
+    return
+  end
+
   local target = index + delta
   if target < 1 then
     notify("Already at first xmark item", vim.log.levels.WARN)
