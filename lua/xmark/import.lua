@@ -79,7 +79,6 @@ function M.import_file(path, opts)
 
   local count = import_items(items)
   require("xmark.sign").refresh()
-  vim.notify("Imported " .. count .. " xmarks", vim.log.levels.INFO, { title = "xmark.nvim" })
   return count
 end
 
@@ -115,7 +114,6 @@ function M.export_file(path)
   }
 
   vim.fn.writefile(vim.split(vim.json.encode(payload), "\n"), path)
-  vim.notify("Exported " .. #items .. " xmarks", vim.log.levels.INFO, { title = "xmark.nvim" })
 end
 
 return M

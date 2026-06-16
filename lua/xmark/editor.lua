@@ -133,7 +133,6 @@ function M.open()
     vim.api.nvim_buf_set_lines(buf, 0, -1, false, render_lines(ordered))
     vim.api.nvim_buf_set_option(buf, "modified", false)
     require("xmark.sign").refresh()
-    vim.notify("Saved xmark list order", vim.log.levels.INFO, { title = "xmark.nvim" })
     return true
   end
 

@@ -69,7 +69,6 @@ function M.add(desc, meta)
       item.meta = meta
     end
     item = db.update_item(item)
-    notify("Updated xmark: " .. display(item))
   else
     local item_id = db.insert_item({
       path = loc.path,
@@ -79,7 +78,6 @@ function M.add(desc, meta)
       meta = meta or "",
     })
     item = db.item(item_id)
-    notify("Added xmark: " .. display(item))
   end
 
   db.set_current_item(nil, item.id)
@@ -91,7 +89,6 @@ function M.toggle(desc)
   local item = M.current_item()
   if item then
     db.delete_item(item.id)
-    notify("Deleted xmark: " .. display(item))
   else
     M.add(desc)
   end
@@ -106,7 +103,6 @@ function M.delete_current()
   end
   db.delete_item(item.id)
   require("xmark.sign").refresh()
-  notify("Deleted xmark: " .. display(item))
 end
 
 function M.set_current_item(item)
@@ -118,7 +114,6 @@ function M.set_current_item(item)
 
   db.set_current_item(nil, item.id)
   require("xmark.sign").refresh()
-  notify("Current xmark item: " .. display(item))
   return item
 end
 
@@ -133,7 +128,6 @@ function M.goto_current()
   end
 
   if not item then
-    notify("Current xmark list is empty", vim.log.levels.WARN)
     return
   end
 
@@ -148,7 +142,6 @@ function M.update_desc(desc)
   item.desc = desc or ""
   db.update_item(item)
   require("xmark.sign").refresh()
-  notify("Updated xmark desc")
 end
 
 function M.goto(item)
@@ -197,7 +190,6 @@ end
 function M.jump(delta)
   local items = db.items(db.active_list().id)
   if #items == 0 then
-    notify("Current xmark list is empty", vim.log.levels.WARN)
     return
   end
 
@@ -209,11 +201,9 @@ function M.jump(delta)
 
   local target = index + delta
   if target < 1 then
-    notify("Already at first xmark item", vim.log.levels.WARN)
     return
   end
   if target > #items then
-    notify("Already at last xmark item", vim.log.levels.WARN)
     return
   end
   M.goto(items[target])
@@ -230,7 +220,6 @@ end
 function M.first()
   local items = db.items(db.active_list().id)
   if #items == 0 then
-    notify("Current xmark list is empty", vim.log.levels.WARN)
     return
   end
   M.goto(items[1])
@@ -239,7 +228,6 @@ end
 function M.last()
   local items = db.items(db.active_list().id)
   if #items == 0 then
-    notify("Current xmark list is empty", vim.log.levels.WARN)
     return
   end
   M.goto(items[#items])
@@ -252,7 +240,6 @@ function M.create_list(name, desc)
   end
   local list = db.create_list(name, desc)
   require("xmark.sign").refresh()
-  notify("Active xmark list: " .. list.name)
   return list
 end
 
@@ -263,7 +250,6 @@ function M.rename_active_list(name)
   local list = db.active_list()
   list.name = name
   db.update_list(list)
-  notify("Renamed active xmark list: " .. name)
 end
 
 function M.delete_list(list_id)
@@ -292,14 +278,12 @@ function M.delete_list(list_id)
 
   db.delete_list(list.id)
   require("xmark.sign").refresh()
-  notify("Deleted xmark list: " .. list.name)
   return db.active_list()
 end
 
 function M.set_active_list(list_id)
   local list = db.set_active_list(list_id)
   require("xmark.sign").refresh()
-  notify("Active xmark list: " .. list.name)
   return list
 end
 
@@ -307,7 +291,6 @@ function M.quickfix()
   local list = db.active_list()
   local items = db.items(list.id)
   if #items == 0 then
-    notify("Current xmark list is empty", vim.log.levels.WARN)
     return
   end
 
@@ -321,7 +304,6 @@ function M.quickfix()
     items = qf_items,
   })
   vim.cmd("copen")
-  notify("Loaded xmark list into quickfix: " .. list.name)
 end
 
 function M.display(item)
