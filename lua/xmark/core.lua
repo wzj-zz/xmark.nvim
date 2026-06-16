@@ -150,7 +150,11 @@ function M.goto(item)
   end
 
   local path = project.absolute(item.path)
-  vim.cmd("edit " .. vim.fn.fnameescape(path))
+  local current_path = vim.api.nvim_buf_get_name(0)
+  local changed_buffer = project.absolute(current_path) ~= path
+  if changed_buffer then
+    vim.cmd("edit " .. vim.fn.fnameescape(path))
+  end
 
   local line_count = vim.api.nvim_buf_line_count(0)
   local line = math.max(1, math.min(item.line, line_count))
@@ -158,10 +162,14 @@ function M.goto(item)
   vim.api.nvim_win_set_cursor(0, { line, col })
   vim.cmd("normal! zz")
 
-  item.visited_at = os.time()
-  db.update_item(item)
-  db.set_current_item(nil, item.id)
-  require("xmark.sign").refresh()
+  local current = db.current_list_item()
+  if not current or current.id ~= item.id then
+    db.set_current_item(nil, item.id)
+  end
+
+  if not changed_buffer then
+    require("xmark.sign").refresh()
+  end
 end
 
 local function current_index(items)

@@ -325,8 +325,15 @@ function M.set_current_item(list_id, item_id)
   end
 
   if not item_id then
+    if not list.current_item_id then
+      return list
+    end
     set_list_current_item_id(list.id, nil)
     return list_from_row(DB.lists:where({ id = list.id }))
+  end
+
+  if list.current_item_id == item_id then
+    return item_from_row(DB.items:where({ id = item_id, project_id = current.id, list_id = list.id }))
   end
 
   local item = item_from_row(DB.items:where({ id = item_id, project_id = current.id, list_id = list.id }))
